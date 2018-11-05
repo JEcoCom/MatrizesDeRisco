@@ -1,11 +1,13 @@
 #DP Definindo o endereço das planilhas
 path<-"/Users/jcaetano/Dropbox/Trabalho/Inframerica/MatrizDeTransecto/TabelasAnalise"
 setwd(path)
+trans<-"Transecto.txt"
+reg<-"Registro.txt"
 
-##Organizando as planilhas de dados(
+##Organizando as planilhas de dados
 #Lendo a planilha
-Transecto<-read.table("Transecto.txt", header=T)
-Registro<-read.table("Registro.txt", header=T)
+Transecto<-read.table(trans, header=T)
+Registro<-read.table(reg, header=T)
 #Juntado duas planilhas
 dados<-merge(Transecto,Registro,by.x="TRANSEC", by.y="TRANSEC")
 head(dados)
@@ -22,28 +24,28 @@ tot<-aggregate(dados2$QUANT,list(dados2$TRANSECR,dados2$CodEspecie),FUN=sum)
 tot<-na.omit(tot)
 A<-aggregate(tot$x,list(tot$Group.2),FUN=mean)
 
+##"B" Massa média para cada espécie
+#Medida da massa para cada espécie
+B<-read.table(massa.txt, header=T)
 
+##"C"Tamanho médio dos bandos
+C<-aggregate(dados2$QUANT,list(dados2$CodEspecie),FUN=mean,na.rm = TRUE)
 
-#Tamanho MÃ©dio dos bandos
-TamanhoBandos<-aggregate(dados2$QUANT,list(dados2$CodEspecie),FUN=mean,na.rm = TRUE)
-
-#Quantidade de Tempo no Aeroporto
+##"D"Quantidade de Tempo no Aeroporto
 tab<-table(dados2$CodEspecie,dados2$TRANSECR)
 tab<-1*(tab>0)
 n<-ncol(tab)
 tab<-data.frame(rowSums(tab))
-QtTempo<-tab/n
+D<-tab/n
 
-#HorÃ¡rio de Atividade das Aves
+##"E"Período do dia
+###Para se utilizar esse comando é importante se analizar quais são os horários de maior atividade do aeroporto. Esse script não está presente nessa linha de comando.
 #Transformando as variaveis de tempo em tempo
 HInicio<-strptime(dados2$H.INICIO, format="%H:%M")
 HTermino<-strptime(dados2$H.TERMINO, format="%H:%M")
 #Calculando o horario medio para cada transecto
 HMedio<-(HTermino-HInicio)/2+HInicio
-
-
-#Com base na avaliaÃ§Ã£o de fluxo do aeropoto serÃ¡ considerado os horÃ¡rios de 8 as 12 como de maior movimentaÃ§Ã£o
-
+###Com base na avaliaÃ§Ã£o de fluxo do aeropoto serÃ¡ considerado os horÃ¡rios de 8 as 12 como de maior movimentaÃ§Ã£o
 #Selecionando apenas as ocorrencias durante o horÃ¡rio de pico de 8 Ã s 12
 dHorario<-data.frame(dados2[c(2,5,14)],HMedio)
 require(lubridate)
@@ -51,24 +53,23 @@ date1 <- as.POSIXct("2018-11-04 08:00:00")
 date2 <- as.POSIXct("2018-11-04 12:00:00")
 int <- interval(date1, date2)
 dHorario<-dHorario[dHorario$HMedio %within% int,]
-
 #contabilizando o total de transectos
 TotTransec<-length(unique(dHorario$TRANSECR)) 
-
 #Contabilizando o nÃºmero de ocorrencias por transecto
 table<-table(dHorario$CodEspecie,dHorario$TRANSECR)
 table<-1*(table>0)
 table<-data.frame(rowSums(table))
 #DefiniÃ§Ã£o do Ã­ndice PerÃ­odo do dia
-PDia<-table/TotTransec
+E<-table/TotTransec
 
-##Calculando os pontos de Ã¡reas de maior risco
+##"E": Localização Calculando os pontos de Ã¡reas de maior risco
+###Para se utilizar esse comando é importante se avaliar as quadrículas de maior risco
 dLocal<-data.frame(dados2[c(2,5,14,15,16,17)])
 Quad<-paste(dLocal$Q.HORIZ,dLocal$Q.VERT, sep="")
 dLocal<-data.frame(dLocal,Quad)
 
-#Selecionando as quadrÃ­culas de risco
-QR<-c("R14","R15","R16", "R17", "R18")
+#Selecionando as quadrículas de risco
+QR11R<-c("R14","R15","R16", "R17", "R18")
 
 #Selecionando apenas os dados para as Ã¡reas de risco
 dLocalRisc<-subset(dLocal, dLocal$Quad %in% QR)
