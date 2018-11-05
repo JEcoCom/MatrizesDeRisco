@@ -62,7 +62,7 @@ table<-data.frame(rowSums(table))
 #DefiniÃ§Ã£o do Ã­ndice PerÃ­odo do dia
 E<-table/TotTransec
 
-##"E": Localização Calculando os pontos de Ã¡reas de maior risco
+##"F": Localização Calculando os pontos de Ã¡reas de maior risco
 ###Para se utilizar esse comando é importante se avaliar as quadrículas de maior risco
 dLocal<-data.frame(dados2[c(2,5,14,15,16,17)])
 Quad<-paste(dLocal$Q.HORIZ,dLocal$Q.VERT, sep="")
@@ -79,5 +79,9 @@ table<-data.frame(rowSums(table))
 #Contabilizando o total de transectos
 TotTransec<-length(unique(dados2$TRANSECR)) 
 
-#"F"DefiniÃ§Ã£o do Ã­ndice de LocalizaÃ§Ã£o
-PLocal<-table/TotTransec
+#DefiniÃ§Ã£o do Ã­ndice de LocalizaÃ§Ã£o
+F<-table/TotTransec
+
+##"G" Voo/Atividade
+
+
