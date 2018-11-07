@@ -109,3 +109,17 @@ Matriz<-merge(Matriz,F,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,G,by.x="Group.1",by.y="ad.Group.1",all.y=TRUE,all.x=TRUE)
 
 names(Matriz)<-c("SP","A","B","C","D","E","F","G")
+
+##Calculo das Pontuações
+PontA<- cut(Matriz$A,breaks = c(-Inf, 10, 20, 50,Inf), labels = c(0,1,2,3),right = FALSE)
+PontB<- cut(Matriz$B,breaks = c(-Inf, 250, 750, 1500,Inf), labels = c(0,1,2,3),right = FALSE)
+PontC<-cut(Matriz$C,breaks = c(-Inf,2,5,20,Inf), labels = c(0,1,2,3),right = FALSE)
+PontD<-cut(Matriz$D,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+PontE<-cut(Matriz$E,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+PontF<-cut(Matriz$F,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+PontG<-cut(Matriz$G,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+#Calculando o somatorio dos fatores
+Total<-rowSums(data.frame(as.numeric(PontA),as.numeric(PontB),as.numeric(PontC),as.numeric(PontD),as.numeric(PontE),as.numeric(PontF),as.numeric(PontG)))
+
+#Montando a matriz final
+MatrizANAC<-data.frame(Matriz$SP,PontA,PontB,PontC,PontD,PontE,PontF,PontG,Total)
