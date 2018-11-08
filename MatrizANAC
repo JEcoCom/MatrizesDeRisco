@@ -100,6 +100,11 @@ Freq[is.na(Freq)] <- 0
 G<-data.frame(ad$Group.1,Freq)
 
 ##"H" Histórico de Colisão dos últimos cinco anos
+colisoes<-read.table("DadosColisões.txt", header=TRUE)
+abreviacoes<-read.table("AbrevSP.txt",header=TRUE)
+
+
+#MontandoMatriz
 
 Matriz<-merge(A,B,by.x="Group.1",by.y="Codigo",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,C,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
