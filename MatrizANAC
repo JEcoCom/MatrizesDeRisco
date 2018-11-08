@@ -293,5 +293,5 @@ Total<-rowSums(data.frame(as.numeric(PontA),as.numeric(PontB),as.numeric(PontC),
 #Montando a matriz final
 
 MatrizParcial<-data.frame(Matriz$SP,PontA,PontB,PontC,PontD,PontE,PontF,PontG)
-Matriz<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH.Abreviacao",all.y=FALSE,all.x=TRUE)
-MatrizFinal<-merge(abreviacoes,Matriz,by.y="Matriz.SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
+Matriz2<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH.Abreviacao",all.y=FALSE,all.x=TRUE)
+MatrizFinal<-merge(abreviacoes,Matriz2,by.y="Matriz.SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
