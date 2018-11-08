@@ -160,8 +160,8 @@ dLocal<-data.frame(dLocal,Quad)
 
 #Selecionando as quadrículas de risco
 
-QR<-c("R14","R15","R16", "R17", "R18")
-
+Q<-as.vector(read.table("QuadRisc.txt",header=T))
+QR<-as.factor(Q$Quadriculas)
 
 
 
