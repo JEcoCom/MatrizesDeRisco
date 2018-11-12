@@ -66,7 +66,10 @@ B<-data.frame(DadosBasicos[c(2,4)])
 
 ##"C"Tamanho médio dos bandos
 
-C<-aggregate(dados2$QUANT,list(dados2$CodEspecie),FUN=mean,na.rm = TRUE)
+TM<-dados2
+TM$QUANT[TM$QUANT==1] <- NA
+
+C<-aggregate(TM$QUANT,list(TM$CodEspecie),FUN=mean,na.rm = TRUE)
 
 
 
@@ -268,7 +271,6 @@ names(Matriz)<-c("SP","A","B","C","D","E","F","G")
 
 
 
-
 ##Calculo das Pontuações
 
 PontA<- cut(Matriz$A,breaks = c(-Inf, 10, 20, 50,Inf), labels = c(0,1,2,3),right = FALSE)
@@ -295,3 +297,11 @@ Total<-rowSums(data.frame(as.numeric(PontA),as.numeric(PontB),as.numeric(PontC),
 MatrizParcial<-data.frame(Matriz$SP,PontA,PontB,PontC,PontD,PontE,PontF,PontG)
 Matriz2<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH.Abreviacao",all.y=FALSE,all.x=TRUE)
 MatrizFinal<-merge(abreviacoes,Matriz2,by.y="Matriz.SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
+#Substituindo os valores de NA que correspondem as espécies que não possuem registro de Colisão para o Brasil por 0 que é o que é indicado pelo indice
+MatrizFinal$dH.Nota[is.na(MatrizFinal$dH.Nota)] <- 0
+
+write.csv(MatrizFinal,file="MatrizFinal.csv")
+
+#Matriz com os dados Brutos
+MatrizBrutos<-merge(abreviacoes,Matriz,by.y="SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
+write.csv(MatrizBrutos,file="MatrizBrutos.csv")
