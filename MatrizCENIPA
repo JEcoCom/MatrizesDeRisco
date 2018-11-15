@@ -1,0 +1,306 @@
+#DP Definindo o endereço das planilhas
+path<-"/Users/jcaetano/Dropbox/Trabalho/Inframerica/MatrizDeTransecto/TabelasAnalise"
+setwd(path)
+trans<-"Transecto.txt"
+reg<-"Registro.txt"
+
+#Inserindo os dados sobre colisões
+colisoes<-read.table("DadosColisoes.txt", header=TRUE)
+
+#Inserindo tabela de abreviações
+abreviacoes<-read.table("AbrevSP.txt",header=TRUE)
+
+##Organizando as planilhas de dados
+#Lendo a planilha
+Transecto<-read.table(trans, header=T)
+Registro<-read.table(reg, header=T)
+#Juntado duas planilhas
+dados<-merge(Transecto,Registro,by.x="TRANSEC", by.y="TRANSEC")
+
+
+###Calculando a informação de frequência de Colisões
+#Identificando a variável de data
+colisoes$Data<-as.Date(colisoes$Data,format="%Y-%m-%d")
+#Adicionando a coluna de abreviações
+MColisoes<-merge(colisoes,abreviacoes,by.x="SP",by.y="Nome",all.x=TRUE)
+#Criando uma coluna numerica para se calcular o número de colunas
+n<-nrow(MColisoes)
+count<-rep(1,n)
+MColisoes<-cbind(MColisoes,count)
+
+#Selecionando apenas as colisões para os ultimos 5 anos em brasilia
+d5<-subset(MColisoes,Data>"2013-11-08")
+(Selecionar os dados para colisoes de Brasília)
+
+###Permanencia no aerodromo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Identificando os dados de data
+
+dados$DATA<-as.Date(dados$DATA,format="%Y-%m-%d")
+
+#Selecionando Transectos realizados a cima de 2015
+
+dados2<-subset(dados,DATA>"2015-12-31")
+
+
+
+
+##"A" Abundancia média por espécie
+
+#Somatório de individuos por transecto
+
+tot<-aggregate(dados2$QUANT,list(dados2$TRANSECR,dados2$CodEspecie),FUN=sum)
+
+#media por especie
+
+##Removendo os nas
+
+tot<-na.omit(tot)
+
+A<-aggregate(tot$x,list(tot$Group.2),FUN=mean)
+
+
+
+
+##"B" Massa média para cada espécie
+
+#Medida da massa para cada espécie
+
+DadosBasicos<-read.table("DadosBasicos.txt", header=T)
+
+B<-data.frame(DadosBasicos[c(2,4)])
+
+
+
+
+##"C"Tamanho médio dos bandos
+
+TM<-dados2
+TM$QUANT[TM$QUANT==1] <- NA
+
+C<-aggregate(TM$QUANT,list(TM$CodEspecie),FUN=mean,na.rm = TRUE)
+
+
+
+
+##"D"Quantidade de Tempo no Aeroporto
+
+tab<-table(dados2$CodEspecie,dados2$TRANSECR)
+
+tab<-1*(tab>0)
+
+n<-ncol(tab)
+
+tab<-data.frame(rowSums(tab))
+
+D<-tab/n
+
+D$Group.1<-rownames(D)
+
+
+
+
+
+
+
+##"E"Período do dia
+
+###Para se utilizar esse comando é importante se analizar quais são os horários de maior atividade do aeroporto. Esse script não está presente nessa linha de comando.
+
+#Transformando as variaveis de tempo em tempo
+
+HInicio<-strptime(dados2$H.INICIO, format="%H:%M")
+
+HTermino<-strptime(dados2$H.TERMINO, format="%H:%M")
+
+#Calculando o horario medio para cada transecto
+
+HMedio<-(HTermino-HInicio)/2+HInicio
+
+###Com base na avaliaÃ§Ã£o de fluxo do aeropoto serÃ¡ considerado os horÃ¡rios de 8 as 12 como de maior movimentaÃ§Ã£o
+
+#Selecionando apenas as ocorrencias durante o horÃ¡rio de pico de 8 Ã s 12
+
+dHorario<-data.frame(dados2[c(2,5,14)],HMedio)
+
+require(lubridate)
+
+date1 <- strptime("08:00", format="%H:%M")
+
+date2 <- strptime("12:00", format="%H:%M")
+
+int <- interval(date1, date2)
+
+dHorario<-dHorario[dHorario$HMedio %within% int,]
+
+#contabilizando o total de transectos
+
+TotTransec<-length(unique(dHorario$TRANSECR)) 
+
+#Contabilizando o nÃºmero de ocorrencias por transecto
+
+table<-table(dHorario$CodEspecie,dHorario$TRANSECR)
+
+table<-1*(table>0)
+
+table<-data.frame(rowSums(table))
+
+#DefiniÃ§Ã£o do Ã­ndice PerÃ­odo do dia
+
+E<-table/TotTransec
+
+E$Group.1<-rownames(E)
+
+
+
+
+
+
+
+##"F": Localização Calculando os pontos de Ã¡reas de maior risco
+
+###Para se utilizar esse comando é importante se avaliar as quadrículas de maior risco
+
+dLocal<-data.frame(dados2[c(2,5,14,15,16,17)])
+
+Quad<-paste(dLocal$Q.HORIZ,dLocal$Q.VERT, sep="")
+
+dLocal<-data.frame(dLocal,Quad)
+
+
+
+
+#Selecionando as quadrículas de risco
+
+Q<-as.vector(read.table("QuadRisc.txt",header=T))
+QR<-as.factor(Q$Quadriculas)
+
+
+
+#Selecionando apenas os dados para as Ã¡reas de risco
+
+dLocalRisc<-subset(dLocal, dLocal$Quad %in% QR)
+
+table<-table(dLocalRisc$CodEspecie,dLocalRisc$TRANSECR)
+
+table<-1*(table>0)
+
+table<-data.frame(rowSums(table))
+
+#Contabilizando o total de transectos
+
+TotTransec<-length(unique(dados2$TRANSECR)) 
+
+
+
+
+#DefiniÃ§Ã£o do Ã­ndice de LocalizaÃ§Ã£o
+
+F<-table/TotTransec
+
+F$Group.1<-rownames(F)
+
+
+
+
+
+
+
+##"G" Voo/Atividade
+
+dG<-data.frame(dados2[c(14,17,18)])
+
+dV<-subset(dG,Pousado.Voando=="V")
+
+adG<-aggregate(dG$QUANT, by=list(dG$CodEspecie), FUN=sum)
+
+adV<-aggregate(dV$QUANT, by=list(dV$CodEspecie), FUN=sum)
+
+ad<-merge(adV,adG,by.x="Group.1", by.y="Group.1",all.y=TRUE)
+
+Freq<-ad$x.x/ad$x.y
+
+Freq[is.na(Freq)] <- 0
+
+G<-data.frame(ad$Group.1,Freq)
+
+
+
+
+
+
+#MontandoMatriz
+
+
+
+
+Matriz<-merge(A,B,by.x="Group.1",by.y="Codigo",all.y=TRUE,all.x=TRUE)
+
+Matriz<-merge(Matriz,C,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
+
+Matriz<-merge(Matriz,D,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
+
+Matriz<-merge(Matriz,E,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
+
+Matriz<-merge(Matriz,F,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
+
+Matriz<-merge(Matriz,G,by.x="Group.1",by.y="ad.Group.1",all.y=TRUE,all.x=TRUE)
+
+
+
+
+names(Matriz)<-c("SP","A","B","C","D","E","F","G")
+
+
+
+##Calculo das Pontuações
+
+PontA<- cut(Matriz$A,breaks = c(-Inf, 10, 20, 50,Inf), labels = c(0,1,2,3),right = FALSE)
+
+PontB<- cut(Matriz$B,breaks = c(-Inf, 250, 750, 1500,Inf), labels = c(0,1,2,3),right = FALSE)
+
+PontC<-cut(Matriz$C,breaks = c(-Inf,2,5,20,Inf), labels = c(0,1,2,3),right = FALSE)
+
+PontD<-cut(Matriz$D,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+
+PontE<-cut(Matriz$E,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+
+PontF<-cut(Matriz$F,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+
+PontG<-cut(Matriz$G,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)
+
+#Calculando o somatorio dos fatores
+
+Total<-rowSums(data.frame(as.numeric(PontA),as.numeric(PontB),as.numeric(PontC),as.numeric(PontD),as.numeric(PontE),as.numeric(PontF),as.numeric(PontG)))
+
+
+#Montando a matriz final
+
+MatrizParcial<-data.frame(Matriz$SP,PontA,PontB,PontC,PontD,PontE,PontF,PontG)
+Matriz2<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH.Abreviacao",all.y=FALSE,all.x=TRUE)
+MatrizFinal<-merge(abreviacoes,Matriz2,by.y="Matriz.SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
+#Substituindo os valores de NA que correspondem as espécies que não possuem registro de Colisão para o Brasil por 0 que é o que é indicado pelo indice
+MatrizFinal$dH.Nota[is.na(MatrizFinal$dH.Nota)] <- 0
+
+write.csv(MatrizFinal,file="MatrizFinal.csv")
+
+#Matriz com os dados Brutos
+MatrizBrutos<-merge(abreviacoes,Matriz,by.y="SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
+write.csv(MatrizBrutos,file="MatrizBrutos.csv")
