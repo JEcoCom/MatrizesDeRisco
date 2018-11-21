@@ -1,5 +1,5 @@
-#DP Definindo o endereço das planilhas
-path<-"/Users/jcaetano/Dropbox/Trabalho/Inframerica/MatrizDeTransecto/TabelasAnalise"
+#Definindo o endereço das planilhas
+path<-"C:\\Users\\i017176431\\Desktop\\Agora2\\BasesAnalise"
 setwd(path)
 trans<-"Transecto.txt"
 reg<-"Registro.txt"
@@ -16,42 +16,45 @@ Transecto<-read.table(trans, header=T)
 Registro<-read.table(reg, header=T)
 #Juntado duas planilhas
 dados<-merge(Transecto,Registro,by.x="TRANSEC", by.y="TRANSEC")
-
+#Identificando os dados de data
+dados$DATA<-as.Date(dados$DATA,format="%Y-%m-%d")
+#Selecionando Transectos realizados a cima de 2015
+dados2<-subset(dados,DATA>"2015-12-31")
+dados2<-subset(dados2,DATA<"2017-09-30")
 #1
 ###Calculando a informação de frequência de Colisões
 #Identificando a variável de data
-colisoes$Data<-as.Date(colisoes$Data,format="%Y-%m-%d")
+colisoes$DataDoEvento<-as.Date(colisoes$DataDoEvento,format="%d/%m/%Y")
+#Selecionando os dados dos 5 anos
+colisoes<-subset(colisoes,DataDoEvento>"2013-12-31")
+colisoes<-subset(colisoes,DataDoEvento<"2017-09-30")
+
 #Adicionando a coluna de abreviações
 MColisoes<-merge(colisoes,abreviacoes,by.x="SP",by.y="Nome",all.x=TRUE)
 #Criando uma coluna numerica para se calcular o número de colunas
 n<-nrow(MColisoes)
 count<-rep(1,n)
 MColisoes<-cbind(MColisoes,count)
+FreqColi<-aggregate(MColisoes$count,list(MColisoes$Abreviacao),FUN="sum")
 
 #2
-#Selecionando apenas as colisões para os ultimos 5 anos em brasilia
-d5<-subset(MColisoes,Data>"2013-11-08")
-(Selecionar os dados para colisoes de Brasília)
-
-#Identificando os dados de data
-dados$DATA<-as.Date(dados$DATA,format="%Y-%m-%d")
-#Selecionando Transectos realizados a cima de 2015
-dados2<-subset(dados,DATA>"2015-12-31")
-
-##"A" Abundancia média por espécie
+##Abundancia média por espécie
 #Somatório de individuos por transecto
 tot<-aggregate(dados2$QUANT,list(dados2$TRANSECR,dados2$CodEspecie),FUN=sum)
 #media por especie
 ##Removendo os nas
 tot<-na.omit(tot)
 A<-aggregate(tot$x,list(tot$Group.2),FUN=mean)
+
 ##"B" Massa média para cada espécie
 #Medida da massa para cada espécie
 DadosBasicos<-read.table("DadosBasicos.txt", header=T)
 B<-data.frame(DadosBasicos[c(2,4)])
-
+DadosMassa<-merge(A,B,,by.x="Group.1",by.y="Codigo",all.x=TRUE,all.y=FALSE)
 ###Massa Total de Indivíduos
-MT<-A*B
+MT<-DadosMassa$x*DadosMassa$X2.Massa
+MT<-data.frame(DadosMassa$Group.1,MT)
+MT$MT<-round(MT$MT, 0)
 
 #3
 ##Permanencia no Aerodromo
@@ -64,11 +67,51 @@ D$Group.1<-rownames(D)
 
 #4 
 ##Proporção de Colisões com dano
+ColiDan<-MColisoes[MColisoes$Danos=="Sim",]
+ColiDan<-aggregate(ColiDan$count,list(ColiDan$Abreviacao),FUN="sum")
+
 
 #5
 ##Severidade Relativa
+SeveRelat<-read.table("SeveridadeRelativa.txt",header=T)
+SeveRelat<-merge(SeveRelat,abreviacoes,by.x="Especies",by.y="Nome")
+
 
 #6
 ##Proporção de colisões multiplas
+ColiMulti<-MColisoes[MColisoes$ColisaoMultipla=="Sim",]
+ColiMultiSP<-aggregate(ColiMulti$count,list(ColiMulti$SP),FUN="sum")
+ColiMultiSP<-merge(ColiMultiSP,abreviacoes,by.x="Group.1",by.y="Nome")
 
 
+##Calculando Probabilidade
+MatrizB<-merge(FreqColi,MT,by.x="Group.1",by.y="DadosMassa.Group.1",all.y=TRUE,all.x=TRUE)
+MatrizB<-merge(MatrizB,D,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
+MatrizB<-merge(MatrizB,ColiDan,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
+MatrizB<-merge(MatrizB,SeveRelat[c(2,3)],by.x="Group.1",by.y="Abreviacao",all.y=TRUE,all.x=TRUE)
+MatrizB<-merge(MatrizB,ColiMultiSP[c(2,3)],by.x="Group.1",by.y="Abreviacao",all.y=TRUE,all.x=TRUE)
+MatrizB<-merge(abreviacoes,MatrizB,by.y="Group.1",by.x="Abreviacao",all.y=TRUE)
+#Nomes
+names(MatrizB)<-c("Abreviacao","Especie","FrequenciaColisoes","MassaTotal","PermanenciaAerodromo","ColisoesDano","SeveridadeRelativa","ColisoesMultiplas")
+#Transformando dados para porcentagem
+MatrizB$ColisoesDano<-MatrizB$ColisoesDano/MatrizB$FrequenciaColisoes
+MatrizB$ColisoesMultiplas<-MatrizB$ColisoesMultiplas/MatrizB$FrequenciaColisoes
+#Substituindo os valores de NA por Zero
+MatrizB[is.na(MatrizB)] <- 0
+
+#Criando a pontuação de cada um dos valores
+##Calculo das Pontuações
+PontFreqColi<- cut(MatrizB$FrequenciaColisoes,breaks = c(-Inf, 0.3, 1, 3, 10,Inf), labels = c(1,2,3,4,5),right = FALSE)
+PontMasTot<- cut((MatrizB$MassaTotal/1000),breaks = c(-Inf, 2.5, 5, 7.5, 10,Inf), labels = c(1,2,3,4,5),right = FALSE)
+PontPermAero<-cut((MatrizB$PermanenciaAerodromo*100),breaks = c(-Inf,20,40,60,80,Inf), labels = c(1,2,3,4,5),right = FALSE)
+PontColiDan<-cut(MatrizB$ColisoesDano*100,breaks = c(-Inf,2,5.9,9.9,20,Inf), labels = c(1,2,3,4,5),right = FALSE)
+PontSevRela<-cut( MatrizB$SeveridadeRelativa , breaks = c(-Inf,20,40,60,80,Inf), labels = c(1,2,3,4,5),right = FALSE)
+PontColiMulti<-cut((MatrizB$ColisoesMultiplas*100) ,breaks = c(-Inf,2,5.9,9.9,20,Inf), labels = c(1,2,3,4,5),right = FALSE)
+#Montando a tabela
+Probabilidade<-rowSums(cbind(PontFreqColi,PontMasTot,PontPermAero))
+Severidade<-rowSums(cbind(PontColiDan,PontSevRela,PontColiMulti))
+
+MatrizPont<-data.frame(MatrizB$Especie,MatrizB$Abreviacao,PontFreqColi,PontMasTot,PontPermAero,Probabilidade,PontColiDan,PontSevRela,PontColiMulti,Severidade)
+
+write.csv(MatrizB,"MatrizCenipa.csv")
+write.csv(MatrizPont,"MatrizPontCenipa.csv")
