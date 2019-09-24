@@ -1,49 +1,41 @@
-#DP Definindo o endereÃ§o das planilhas
-path<-"C:\\Users\\i017176431\\Desktop\\MatrizAnac\\TabelasAnalise"
-setwd(path)
-trans<-"Transecto.txt"
-reg<-"Registro.txt"
+#Lendo a Tabela de Transectos
+#Instalando o Pacote para ler arquivos do excel
+library(readxl)
+#Lendo as abas como tabelas separadas
+Transectos<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Planilhas\\Transecto\\Transecto.xlsx", sheet="Transecto",
+col_types = c("guess", "guess", "guess", "guess", "guess", "date",  "date",  "date",  "guess",  "skip" )
+)
+Registros<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Planilhas\\Transecto\\Transecto.xlsx", sheet="Registro")
+#Juntadno as duas tabelas para formar a tabela da analise
+dados<-merge(Transectos,Registros,by.x="Transecto", by.y="Transecto")
 
-##Organizando as planilhas de dados
-#Lendo a planilha
-Transecto<-read.table(trans, header=T)
-Registro<-read.table(reg, header=T)
-
-#Juntado duas planilhas
-dados<-merge(Transecto,Registro,by.x="TRANSEC", by.y="TRANSEC")
-
-##Utilizar para calcular a matriz 2017##
-#Identificando os dados de data
-dados$DATA<-as.Date(dados$DATA,format="%Y-%m-%d")
+##Utilizar para calcular a matriz
 #Selecionando Transectos realizados a cima de 2015##
-dados2<-subset(dados,DATA>"2015-12-31"&DATA<"2017-09-30")
+dados2<-subset(dados,Data>"2015-12-31")
 
-
-##"A" Abundancia mÃ©dia por espÃ©cie
-#SomatÃ³rio de individuos por transecto
-tot<-aggregate(dados2$QUANT,list(dados2$TRANSECR,dados2$CodEspecie),FUN=sum)
+##"A" Abundancia media por especie
+#Somatorio de individuos por transecto
+tot<-aggregate(dados2$Quantidade,list(dados2$UnidadeAmostral,dados2$Especie),FUN=sum)
 #media por especie
 ##Removendo os nas
 tot<-na.omit(tot)
 A<-aggregate(tot$x,list(tot$Group.2),FUN=mean)
 
-
-##CorrigirMassas##
-##"B" Massa mÃ©dia para cada espÃ©cie
+##"B" Massa media para cada especies
 #Medida da massa para cada espÃ©cie
-DadosBasicos<-read.table("DadosBasicos.txt", header=T)
+DadosBasicos<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\DadosBasicos.xlsx", sheet="Plan1")
 B<-data.frame(DadosBasicos[c(2,4)])
 
-##"C"Tamanho mÃ©dio dos bandos
+##"C"Tamanho médio dos bandos
 TM<-dados2
-#Eliminando ocorrencias com apenas 1 indivÃ­duo
-TM$QUANT[TM$QUANT==1] <- NA
-#Calculando o tamanho mÃ©dio dos bandos
-C<-aggregate(TM$QUANT,list(TM$CodEspecie),FUN=mean,na.rm = TRUE)
+#Eliminando ocorrencias com apenas 1 indiví­duo
+TM$Quantidade[TM$Quantidade==1] <- NA
+#Calculando o tamanho médio dos bandos
+C<-aggregate(TM$Quantidade,list(TM$Especie),FUN=mean,na.rm = TRUE)
 
 ##"D"Quantidade de Tempo no Aeroporto
-#Criando uma matriz Transecto-EspÃ©cie
-tab<-table(dados2$CodEspecie,dados2$TRANSECR)
+#Criando uma matriz Transecto-Especie
+tab<-table(dados2$Especie,dados2$UnidadeAmostral)
 #Substituindo os valores maiores que zero por 1 criando uma matriz de presenÃ§a e ausencia
 tab<-1*(tab>0)
 #Contabilizando o total de transectos realizados
@@ -53,24 +45,24 @@ D<-tab/n
 D$Group.1<-rownames(D)
 
 ##"E"PerÃ­odo do dia
-###Para se utilizar esse comando Ã© importante se analizar quais sÃ£o os horÃ¡rios de maior atividade do aeroporto. Esse script nÃ£o estÃ¡ presente nessa linha de comando.
+###Para se utilizar esse comando e importante se analizar quais sao os horarios de maior atividade do aeroporto. Esse script nao esta presente nessa linha de comando.
 #Transformando as variaveis de tempo em tempo
-HInicio<-strptime(dados2$H.INICIO, format="%H:%M")
-HTermino<-strptime(dados2$H.TERMINO, format="%H:%M")
+HInicio<-dados2$HInicio
+HTermino<-dados2$HTermino
 #Calculando o horario medio para cada transecto
 HMedio<-(HTermino-HInicio)/2+HInicio
 ###Com base na avaliaÃƒÂ§ÃƒÂ£o de fluxo do aeropoto serÃƒÂ¡ considerado os horÃƒÂ¡rios de 8 as 12 como de maior movimentaÃƒÂ§ÃƒÂ£o
 #Selecionando apenas as ocorrencias durante o horÃƒÂ¡rio de pico de 8 Ãƒ s 12
-dHorario<-data.frame(dados2[c(2,5,14)],HMedio)
+dHorario<-data.frame(dados2[c(3,11,14)],HMedio)
 require(lubridate)
-date1 <- strptime("08:00", format="%H:%M")
-date2 <- strptime("12:00", format="%H:%M")
+date1 <- strptime("1899-12-31 08:00", format="%Y-%m-%d %H:%M")
+date2 <- strptime("1899-12-31 12:00", format="%Y-%m-%d %H:%M")
 int <- interval(date1, date2)
 dHorario<-dHorario[dHorario$HMedio %within% int,]
 #contabilizando o total de transectos
-TotTransec<-length(unique(dHorario$TRANSECR)) 
+TotTransec<-length(unique(dHorario$UnidadeAmostral)) 
 #Contabilizando o numero de ocorrencias por transecto
-table<-table(dHorario$CodEspecie,dHorario$TRANSECR)
+table<-table(dHorario$Especie,dHorario$UnidadeAmostral)
 table<-1*(table>0)
 table<-data.frame(rowSums(table))
 #DefiniÃƒÂ§ÃƒÂ£o do ÃƒÂ­ndice PerÃƒÂ­odo do dia
@@ -79,37 +71,37 @@ E$Group.1<-rownames(E)
 
 ##"F": LocalizaÃ§Ã£o Calculando os pontos de areas de maior risco
 ###Para se utilizar esse comando Ã© importante se avaliar as quadrÃ­culas de maior risco
-dLocal<-data.frame(dados2[c(2,5,14,15,16,17)])
+dLocal<-data.frame(dados2[c(3,6,11,12,13,14)])
 #Juntando as quadriculas horizontais e vertivais
-Quad<-paste(dLocal$Q.HORIZ,dLocal$Q.VERT, sep="")
+Quad<-paste(dLocal$QuadriculaLetra,dLocal$QuadriculaNumero, sep="")
 dLocal<-data.frame(dLocal,Quad)
 #Selecionando as quadrÃ­culas de risco
-Q<-as.vector(read.table("QuadRisc.txt",header=T))
+Q<-as.vector(read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\QuadRisc.xlsx", sheet="Sheet2"))
 QR<-as.factor(Q$Quadriculas)
 #Selecionando apenas os dados para as ÃƒÂ¡reas de risco
 dLocalRisc<-subset(dLocal, dLocal$Quad %in% QR)
-table<-table(dLocalRisc$CodEspecie,dLocalRisc$TRANSECR)
+table<-table(dLocalRisc$Especie,dLocalRisc$UnidadeAmostral)
 table<-1*(table>0)
 table<-data.frame(rowSums(table))
 #Contabilizando o total de transectos
-TotTransec<-length(unique(dados2$TRANSECR))
+TotTransec<-length(unique(dados2$UnidadeAmostral))
 #DefiniÃƒÂ§ÃƒÂ£o do ÃƒÂ­ndice de LocalizaÃƒÂ§ÃƒÂ£o
 F<-table/TotTransec
 F$Group.1<-rownames(F)
 
 ##"G" Voo/Atividade
-dG<-data.frame(dados2[c(14,17,18)])
-dV<-subset(dG,Pousado.Voando=="V")
-adG<-aggregate(dG$QUANT, by=list(dG$CodEspecie), FUN=sum)
-adV<-aggregate(dV$QUANT, by=list(dV$CodEspecie), FUN=sum)
+dG<-data.frame(dados2[c(3,11,14,15)])
+dV<-subset(dG,dG$VoandoPousado=="V")
+adG<-aggregate(dG$Quantidade, by=list(dG$Especie), FUN=sum)
+adV<-aggregate(dV$Quantidade, by=list(dV$Especie), FUN=sum)
 ad<-merge(adV,adG,by.x="Group.1", by.y="Group.1",all.y=TRUE)
 Freq<-ad$x.x/ad$x.y
 Freq[is.na(Freq)] <- 0
 G<-data.frame(ad$Group.1,Freq)
 
 ##"H" HistÃ³rico de ColisÃ£o dos Ãºltimos cinco anos
-colisoes<-read.table("DadosColisoes.txt", header=TRUE)
-abreviacoes<-read.table("AbrevSP.txt",header=TRUE)
+colisoes<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\DadosColisões.xlsx", sheet="DadosColisoes")
+abreviacoes<-read.table("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\AbrevSP.txt",header=TRUE)
 colisoes$Data<-as.Date(colisoes$Data,format="%Y-%m-%d")
 MColisoes<-merge(colisoes,abreviacoes,by.x="SP",by.y="Nome",all.x=TRUE)
 n<-nrow(MColisoes)
@@ -121,7 +113,7 @@ Brasil<-aggregate(MColisoes$count,list(MColisoes$SP),FUN=sum)
 t1<-table(MColisoes$SP,MColisoes$ICAO)
 sbbr<-data.frame(t1[,"SBBR"])
 #Calculando o total de colisoes por especie para os ultimos 5 anos em brasilia
-d5<-subset(MColisoes,Data>"2013-11-08",&DATA<"2017-09-30")
+d5<-subset(MColisoes,Data>"2013-11-08" && Data<"2017-09-30")
 t2<-table(d5$SP,d5$ICAO)
 sbbr5<-data.frame(t2[,"SBBR"])
 #TabelaColisoes
@@ -130,9 +122,10 @@ Coli<-cbind(Brasil,sbbr,sbbr5)
 Colisoes<-merge(Coli,abreviacoes,by.x="Group.1",by.y="Nome",all.x=TRUE)
 names(Colisoes)<-c("sp","Brasil","SBBR","SBBR5")
 #Gambiarra(Resolver Depois)
-write.csv(Colisoes,file="ColisoesFinal.csv")
-dH<-read.table("ClassColisoes.txt",header=T)
-H<-data.frame(dH$Abreviacao,dH$Nota)
+library("writexl")
+write_xlsx(Colisoes, "N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\ColisoesGamb.xlsx")
+dH<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\colisoes.xlsx",sheet="Sheet1")
+H<-data.frame(dH$'NA',dH$Nota)
 
 #MontandoMatriz
 Matriz<-merge(A,B,by.x="Group.1",by.y="Codigo",all.y=TRUE,all.x=TRUE)
@@ -141,22 +134,23 @@ Matriz<-merge(Matriz,D,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,E,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,F,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,G,by.x="Group.1",by.y="ad.Group.1",all.y=TRUE,all.x=TRUE)
-Matriz<-merge(Matriz,H,by.x="Group.1",by.y="dH.Abreviacao",all.y=FALSE,all.x=TRUE)
+Matriz<-merge(Matriz,H,by.x="Group.1",by.y="dH..NA.",all.y=FALSE,all.x=TRUE)
 
 names(Matriz)<-c("SP","A","B","C","D","E","F","G","H")
 
+
 ##Calculo das PontuaÃ§Ãµes
-PontA<- as.numeric(cut(Matriz$A,breaks = c(-Inf, 10, 20, 50,Inf), labels = c(0,1,2,3),right = FALSE))
-PontB<- as.numeric(cut(Matriz$B,breaks = c(-Inf, 250, 750, 1500,Inf), labels = c(0,1,2,3),right = FALSE))
-PontC<-as.numeric(cut(Matriz$C,breaks = c(-Inf,2,5,20,Inf), labels = c(0,1,2,3),right = FALSE))
-PontD<-as.numeric(cut(Matriz$D,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE))
-PontE<-as.numeric(cut(Matriz$E,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE))
-PontF<-as.numeric(cut(Matriz$F,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE))
-PontG<-as.numeric(cut(Matriz$G,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE))
+PontA<-as.numeric(as.character(cut(Matriz$A,breaks = c(-Inf, 10, 20, 50,Inf), labels = c(0,1,2,3),right = FALSE)))
+PontB<-as.numeric(as.character(cut(Matriz$B,breaks = c(-Inf,250, 750, 1500, Inf), labels = c(0,1,2,3),right = FALSE)))
+PontC<-as.numeric(as.character(cut(Matriz$C,breaks = c(-Inf,2,5,20,Inf), labels = c(0,1,2,3),right = FALSE)))
+PontD<-as.numeric(as.character(cut(Matriz$D,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)))
+PontE<-as.numeric(as.character(cut(Matriz$E,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)))
+PontF<-as.numeric(as.character(cut(Matriz$F,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)))
+PontG<-as.numeric(as.character(cut(Matriz$G,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)))
 
 #Montando a matriz final
 MatrizParcial<-data.frame(Matriz$SP,PontA,PontB,PontC,PontD,PontE,PontF,PontG)
-Matriz2<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH.Abreviacao",all.y=FALSE,all.x=TRUE)
+Matriz2<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH..NA.",all.y=FALSE,all.x=TRUE)
 MatrizFinal<-merge(abreviacoes,Matriz2,by.y="Matriz.SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
 #Substituindo os valores de NA que correspondem as espÃ©cies que nÃ£o possuem registro de ColisÃ£o para o Brasil por 0 que Ã© o que Ã© indicado pelo indice
 MatrizFinal[is.na(MatrizFinal)] <- 0
@@ -166,18 +160,20 @@ MatrizFinal<-cbind(MatrizFinal,Total)
 #Adicionando os titulos das tabelas
 names(MatrizFinal)<-c("Abreviação","Nome","População","Massa","Tamanho-dos-Bandos","Presença","Período-do-Dia","Localização","Voo/Atividade","Registros-de-Colisão","Risco")
 
-write.csv(MatrizFinal,file="MatrizFinal.csv")
+write_xlsx(MatrizFinal, "N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\MatrizAnacFinal.xlsx")
+
 
 #Matriz com os dados Brutos
 MatrizBrutos<-merge(abreviacoes,Matriz,by.y="SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
 MatrizBrutos[is.na(MatrizBrutos)] <- 0
 names(MatrizBrutos)<-c("Abreviação","Nome","População","Massa","Tamanho-dos-Bandos","Presença","Período-do-Dia","Localização","Voo/Atividade","Registros-de-Colisão")
 
-write.csv(MatrizBrutos,file="MatrizBrutos.csv")
+write_xlsx(MatrizBrutos, "N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\MatrizAnacBrutos.xlsx")
+
 
 ##Calculando a classificaÃ§Ã£o de risco
 ##Inserindo as informaçõe de capacidade de desvio e suseptibilidade a colisao
-dArb<-read.table("DadosArb.txt",header=T)
+dArb<-read_xlsx("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\DadosArb.xlsx",sheet="Plan1")
 
 
 #Montando a tabela
@@ -212,4 +208,6 @@ Classificacao<-cbind(Classificacao,Indice)
 Classificacao<-merge(abreviacoes,Classificacao,by.y="SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
 names(Classificacao)<-c("Abreviação","Nome","População","Massa","Tamanho-dos-Bandos","Presença","Período-do-Dia","Localização","Voo/Atividade","Registros-de-Colisão","Evitar-Colisão","Seuceptibilidade-Colisão","GrauDeRisco")
 Classificacao[is.na(Classificacao)]<-"NA"
-write.csv(Classificacao,file="Classificacao.csv")
+
+write_xlsx(Classificacao, "N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\ClassificacaoANAC.xlsx")
+
