@@ -100,32 +100,33 @@ Freq[is.na(Freq)] <- 0
 G<-data.frame(ad$Group.1,Freq)
 
 ##"H" HistÃ³rico de ColisÃ£o dos Ãºltimos cinco anos
-colisoes<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\DadosColisões.xlsx", sheet="DadosColisoes")
-abreviacoes<-read.table("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\AbrevSP.txt",header=TRUE)
-colisoes$Data<-as.Date(colisoes$Data,format="%Y-%m-%d")
-MColisoes<-merge(colisoes,abreviacoes,by.x="SP",by.y="Nome",all.x=TRUE)
+colisoes<-data.frame(read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Planilhas\\Colisões\\ColisoesTratadas.xlsx", sheet="Sheet1"))
+MColisoes<-subset(colisoes, TipoDeReporte == "colisão")
 n<-nrow(MColisoes)
 count<-rep(1,n)
 #Calculando o total de colisÃµes por especie para o brasil
 MColisoes<-cbind(MColisoes,count)
-Brasil<-aggregate(MColisoes$count,list(MColisoes$SP),FUN=sum)
+Brasil<-aggregate(MColisoes$count,list(MColisoes$Abreviacao),FUN=sum)
 #Calculando o total de colisoes por especie para Brasilia
-t1<-table(MColisoes$SP,MColisoes$ICAO)
-sbbr<-data.frame(t1[,"SBBR"])
+f1<-table(MColisoes$Abreviacao,MColisoes$ICAO)
+sbbr<-f1[,"SBBR"]
+sbbr<-data.frame(rownames(f1), sbbr)
+
+
 #Calculando o total de colisoes por especie para os ultimos 5 anos em brasilia
-d5<-subset(MColisoes,Data>"2013-11-08" && Data<"2017-09-30")
-t2<-table(d5$SP,d5$ICAO)
-sbbr5<-data.frame(t2[,"SBBR"])
+d5<-MColisoes[MColisoes$DataDoEvento>"2013-11-08" & MColisoes$DataDoEvento<"2017-09-30",]
+f2<-table(d5$Abreviacao,d5$ICAO)
+sbbr5<-f2[,"SBBR"]
+sbbr5<-data.frame(rownames(f2), sbbr5)
 #TabelaColisoes
-Coli<-cbind(Brasil,sbbr,sbbr5)
-#Adicionando as abreviaÃ§Ãµes
-Colisoes<-merge(Coli,abreviacoes,by.x="Group.1",by.y="Nome",all.x=TRUE)
+C1<-merge(Brasil,sbbr,by.x="Group.1",by.y="rownames.f1.",all.x=TRUE)
+Colisoes<-merge(C1,sbbr5,by.x="Group.1",by.y="rownames.f2.",all.x=TRUE)
 names(Colisoes)<-c("sp","Brasil","SBBR","SBBR5")
 #Gambiarra(Resolver Depois)
 library("writexl")
 write_xlsx(Colisoes, "N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\ColisoesGamb.xlsx")
 dH<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Analises\\MatrizAnac\\BaseDeDados\\colisoes.xlsx",sheet="Sheet1")
-H<-data.frame(dH$'NA',dH$Nota)
+H<-data.frame(dH$'sp',dH$Nota)
 
 #MontandoMatriz
 Matriz<-merge(A,B,by.x="Group.1",by.y="Codigo",all.y=TRUE,all.x=TRUE)
@@ -134,7 +135,7 @@ Matriz<-merge(Matriz,D,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,E,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,F,by.x="Group.1",by.y="Group.1",all.y=TRUE,all.x=TRUE)
 Matriz<-merge(Matriz,G,by.x="Group.1",by.y="ad.Group.1",all.y=TRUE,all.x=TRUE)
-Matriz<-merge(Matriz,H,by.x="Group.1",by.y="dH..NA.",all.y=FALSE,all.x=TRUE)
+Matriz<-merge(Matriz,H,by.x="Group.1",by.y="dH.sp",all.y=FALSE,all.x=TRUE)
 
 names(Matriz)<-c("SP","A","B","C","D","E","F","G","H")
 
@@ -149,13 +150,15 @@ PontF<-as.numeric(as.character(cut(Matriz$F,breaks = c(-Inf,0.3,0.6,0.9,Inf), la
 PontG<-as.numeric(as.character(cut(Matriz$G,breaks = c(-Inf,0.3,0.6,0.9,Inf), labels = c(0,1,2,3),right = FALSE)))
 
 #Montando a matriz final
+abreviacoes<-read_excel("N:\\MA - Meio Ambiente\\MANEJO DA FAUNA\\Planilhas\\Colisões\\RefAnalise\\Abreviacoes.xlsx",sheet="AB")
+
 MatrizParcial<-data.frame(Matriz$SP,PontA,PontB,PontC,PontD,PontE,PontF,PontG)
-Matriz2<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH..NA.",all.y=FALSE,all.x=TRUE)
+Matriz2<-merge(MatrizParcial,H,by.x="Matriz.SP",by.y="dH.sp",all.y=FALSE,all.x=TRUE)
 MatrizFinal<-merge(abreviacoes,Matriz2,by.y="Matriz.SP",by.x="Abreviacao",all.y=TRUE,all.x=FALSE)
 #Substituindo os valores de NA que correspondem as espÃ©cies que nÃ£o possuem registro de ColisÃ£o para o Brasil por 0 que Ã© o que Ã© indicado pelo indice
 MatrizFinal[is.na(MatrizFinal)] <- 0
 #Adicionando o somatório das linhas
-Total<-rowSums(MatrizFinal[c(3,4,5,6,7,8,9,10)])
+Total<-rowSums(MatrizFinal[c(4,5,6,7,8,9,10,11)])
 MatrizFinal<-cbind(MatrizFinal,Total)
 #Adicionando os titulos das tabelas
 names(MatrizFinal)<-c("Abreviação","Nome","População","Massa","Tamanho-dos-Bandos","Presença","Período-do-Dia","Localização","Voo/Atividade","Registros-de-Colisão","Risco")
@@ -184,7 +187,7 @@ DC<-cbind(D[2],100*D$rowSums.tab./max(D$rowSums.tab.))
 EC<-cbind(E[2],100*E$rowSums.table./max(E$rowSums.table.))
 FC<-cbind(F[2],100*F$rowSums.table./max(F$rowSums.table.))
 GC<-cbind(G[1],100*G$Freq/max(G$Freq))
-HC<-cbind(Colisoes[5],100*Colisoes$SBBR5/max(Colisoes$SBBR5))
+HC<-cbind(Colisoes[3],100*Colisoes$SBBR5/max(Colisoes$SBBR5))
 names(HC)<-c("SP","Dados")
 ##Juntando as Colunas
 Classificacao<-merge(AC,BC,by.x="Group.1",by.y="Codigo",all.y=TRUE,all.x=TRUE)
